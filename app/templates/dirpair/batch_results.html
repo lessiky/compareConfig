@@ -1,0 +1,114 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2>批量比对结果</h2>
+        <a href="{{ url_for('dirpair.list_pairs') }}" class="btn btn-secondary">返回列表</a>
+    </div>
+
+    {% for pair, results in grouped_results %}
+    <div class="card mb-4">
+        <div class="card-header bg-light">
+            <h5 class="mb-0">
+                <span class="badge bg-primary me-2">{{ pair.name }}</span>
+                <small class="text-muted">
+                    {{ pair.left_server.name }}:{{ pair.left_path }} 
+                    <i class="bi bi-arrow-left-right mx-1">&harr;</i> 
+                    {{ pair.right_server.name }}:{{ pair.right_path }}
+                </small>
+            </h5>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-bordered table-hover mb-0" style="table-layout: fixed; width: 100%;">
+                    <thead class="table-light">
+                        <tr>
+                            <th style="width: 30%">文件名</th>
+                            <th style="width: 15%">状态</th>
+                            <th style="width: 25%">比对时间</th>
+                            <th style="width: 30%">操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for result in results %}
+                        <tr class="{{ 'table-danger' if result.status == 'DIFF' else 'table-warning' if 'MISSING' in result.status else 'table-success' }}">
+                            <td>{{ result.file_name }}</td>
+                            <td>
+                                {% if result.status == 'MATCH' %}
+                                <span class="badge bg-success">一致</span>
+                                {% elif result.status == 'DIFF' %}
+                                <span class="badge bg-danger">差异</span>
+                                {% elif result.status == 'MISSING_SOURCE' %}
+                                <span class="badge bg-warning text-dark">源缺失</span>
+                                {% elif result.status == 'MISSING_TARGET' %}
+                                <span class="badge bg-warning text-dark">目标缺失</span>
+                                {% else %}
+                                {{ result.status }}
+                                {% endif %}
+                            </td>
+                            <td>{{ result.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+                            <td>
+                                {% if result.status == 'DIFF' %}
+                                <button class="btn btn-sm btn-outline-primary" type="button" 
+                                        data-bs-toggle="collapse" 
+                                        data-bs-target="#diff-{{ result.id }}"
+                                        onclick="renderDiff('{{ result.id }}')">
+                                    查看差异
+                                </button>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% if result.status == 'DIFF' %}
+                        <tr>
+                            <td colspan="4" class="p-0 border-0">
+                                <div class="collapse" id="diff-{{ result.id }}">
+                                    <div class="card card-body bg-light m-2 p-0" style="overflow-x: auto; max-width: 100%;">
+                                        <div id="diff-container-{{ result.id }}" style="min-width: 800px;"></div>
+                                    </div>
+                                    <script type="text/template" id="raw-diff-{{ result.id }}">{{ result.diff_content|safe }}</script>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endif %}
+                        {% else %}
+                        <tr>
+                            <td colspan="4" class="text-center text-muted py-3">暂无结果</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="alert alert-info">没有找到比对结果。</div>
+    {% endfor %}
+</div>
+
+<script>
+function renderDiff(resultId) {
+    const containerId = 'diff-container-' + resultId;
+    const targetElement = document.getElementById(containerId);
+    
+    // 如果已经渲染过，就不再重复渲染
+    if (targetElement.innerHTML.trim() !== '') {
+        return;
+    }
+    
+    const rawDiffElement = document.getElementById('raw-diff-' + resultId);
+    if (!rawDiffElement) return;
+    
+    const rawDiff = rawDiffElement.textContent;
+    if (rawDiff && rawDiff.trim()) {
+        const configuration = {
+            drawFileList: false,
+            matching: 'lines',
+            outputFormat: 'side-by-side',
+        };
+        const diff2htmlUi = new Diff2HtmlUI(targetElement, rawDiff, configuration);
+        diff2htmlUi.draw();
+    }
+}
+</script>
+{% endblock %}

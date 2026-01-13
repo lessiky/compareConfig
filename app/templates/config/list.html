@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+
+{% block content %}
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2>配置管理</h2>
+        <div>
+             <button type="button" class="btn btn-secondary me-2" onclick="toggleAll()">全选/取消全选</button>
+             <button type="submit" class="btn btn-primary me-2" form="batchForm">批量比对</button>
+             <button type="submit" class="btn btn-info" form="batchForm" formaction="{{ url_for('main.batch_history') }}">上次比对结果</button>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-md-12 w-100">
+            {% for server in servers %}
+            <div class="card mb-3">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <div>
+                        <span><strong>{{ server.name }}</strong> ({{ server.ip }})</span>
+                        <span class="badge bg-secondary ms-2">{{ server.username }}</span>
+                        {% if server.business_system %}
+                        <span class="badge bg-info text-dark ms-2">{{ server.business_system.name }}</span>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="card-body">
+                    <table class="table table-sm config-table">
+                        <thead>
+                            <tr>
+                                <th></th>
+                                <th>远程路径</th>
+                                <th>GitLab 路径</th>
+                                <th>匹配模式</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for config in server.config_maps %}
+                            <tr>
+                                <td>
+                                    <input type="checkbox" name="config_ids" value="{{ config.id }}" class="form-check-input config-checkbox" form="batchForm">
+                                </td>
+                                <td>{{ config.remote_path }}</td>
+                                <td>{{ config.gitlab_path }}</td>
+                                <td>{{ config.file_pattern }}</td>
+                                <td>
+                                    <a href="{{ url_for('main.compare', config_id=config.id) }}" class="btn btn-primary btn-sm">比对</a>
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="5" class="text-muted">暂无配置映射。</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+
+                    <!-- Add Config Map Form -->
+                    <form action="{{ url_for('main.add_config') }}" method="POST" class="row g-3 align-items-center mt-2 border-top pt-2 flex-nowrap" style="max-width: 90%;">
+                        <input type="hidden" name="server_id" value="{{ server.id }}">
+                        <div class="col-md-5">
+                            <input type="text" name="remote_path" class="form-control form-control-sm" placeholder="远程路径 (/etc/...)" required>
+                        </div>
+                        <div class="col-md-5">
+                            <input type="text" name="gitlab_path" class="form-control form-control-sm" placeholder="GitLab 路径 (configs/...)" required>
+                        </div>
+                        <div class="col-md-1">
+                            <input type="text" name="file_pattern" class="form-control form-control-sm" value="*" placeholder="模式">
+                        </div>
+                        <div class="col-md-1">
+                            <button type="submit" class="btn btn-sm btn-outline-success w-100">添加</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            {% else %}
+            <p>暂无授权的服务器信息。</p>
+            {% endfor %}
+        </div>
+    </div>
+
+<form action="{{ url_for('main.batch_compare') }}" method="POST" id="batchForm"></form>
+
+<script>
+    function toggleAll() {
+        const checkboxes = document.querySelectorAll('.config-checkbox');
+        const allChecked = Array.from(checkboxes).every(c => c.checked);
+        checkboxes.forEach(c => c.checked = !allChecked);
+    }
+</script>
+{% endblock %}

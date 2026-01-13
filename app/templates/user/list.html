@@ -1,0 +1,155 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h2>用户管理</h2>
+    <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addUserModal">
+        新增用户
+    </button>
+</div>
+
+<table class="table table-striped">
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>用户名</th>
+            <th>管理员</th>
+            <th>状态</th>
+            <th>授权业务系统</th>
+            <th>操作</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for user in users %}
+        <tr>
+            <td>{{ user.id }}</td>
+            <td>{{ user.username }}</td>
+            <td>
+                {% if user.is_admin %}
+                <span class="badge bg-success">是</span>
+                {% else %}
+                <span class="badge bg-secondary">否</span>
+                {% endif %}
+            </td>
+            <td>
+                {% if user.is_active %}
+                <span class="badge bg-success">启用</span>
+                {% else %}
+                <span class="badge bg-danger">禁用</span>
+                {% endif %}
+            </td>
+            <td>
+                {% for sys in user.authorized_systems %}
+                <span class="badge bg-info text-dark">{{ sys.name }}</span>
+                {% endfor %}
+            </td>
+            <td>
+                <button class="btn btn-sm btn-info" data-bs-toggle="modal" data-bs-target="#editUserModal{{ user.id }}">编辑</button>
+                {% if user.id != current_user.id %}
+                <a href="{{ url_for('user.delete_user', id=user.id) }}" class="btn btn-sm btn-danger" onclick="return confirm('确定删除？')">删除</a>
+                {% endif %}
+            </td>
+        </tr>
+
+        <!-- Edit Modal -->
+        <div class="modal fade" id="editUserModal{{ user.id }}" tabindex="-1">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <form action="{{ url_for('user.edit_user', id=user.id) }}" method="POST">
+                        <div class="modal-header">
+                            <h5 class="modal-title">编辑用户</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="mb-3">
+                                <label class="form-label">用户名</label>
+                                <input type="text" name="username" class="form-control" value="{{ user.username }}" required>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">密码 (留空则不修改)</label>
+                                <input type="password" name="password" class="form-control">
+                            </div>
+                            <div class="mb-3 form-check">
+                                <input type="checkbox" name="is_admin" class="form-check-input" id="isAdmin{{ user.id }}" {% if user.is_admin %}checked{% endif %}>
+                                <label class="form-check-label" for="isAdmin{{ user.id }}">管理员权限</label>
+                            </div>
+                            <div class="mb-3 form-check">
+                                <input type="checkbox" name="is_active" class="form-check-input" id="isActive{{ user.id }}" {% if user.is_active %}checked{% endif %}>
+                                <label class="form-check-label" for="isActive{{ user.id }}">启用账户</label>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">业务系统授权</label>
+                                <div class="row">
+                                    {% for sys in systems %}
+                                    <div class="col-md-4">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" name="system_ids" value="{{ sys.id }}" id="sys{{ user.id }}_{{ sys.id }}"
+                                                {% if sys in user.authorized_systems %}checked{% endif %}>
+                                            <label class="form-check-label" for="sys{{ user.id }}_{{ sys.id }}">
+                                                {{ sys.name }}
+                                            </label>
+                                        </div>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                            <button type="submit" class="btn btn-primary">保存</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </tbody>
+</table>
+
+<!-- Add Modal -->
+<div class="modal fade" id="addUserModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <form action="{{ url_for('user.add_user') }}" method="POST">
+                <div class="modal-header">
+                    <h5 class="modal-title">新增用户</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">用户名</label>
+                        <input type="text" name="username" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">密码</label>
+                        <input type="password" name="password" class="form-control" required>
+                    </div>
+                    <div class="mb-3 form-check">
+                        <input type="checkbox" name="is_admin" class="form-check-input" id="addIsAdmin">
+                        <label class="form-check-label" for="addIsAdmin">管理员权限</label>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">业务系统授权</label>
+                        <div class="row">
+                            {% for sys in systems %}
+                            <div class="col-md-4">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="system_ids" value="{{ sys.id }}" id="addSys{{ sys.id }}">
+                                    <label class="form-check-label" for="addSys{{ sys.id }}">
+                                        {{ sys.name }}
+                                    </label>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="submit" class="btn btn-primary">保存</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

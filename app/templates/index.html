@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+
+{% block content %}
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2>服务器与配置</h2>
+    </div>
+    <div class="row">
+        <div class="col-md-12">
+            {% for server in servers %}
+            <div class="card mb-3">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <span><strong>{{ server.name }}</strong> ({{ server.ip }})</span>
+                    <span class="badge bg-secondary">{{ server.username }}</span>
+                </div>
+                <div class="card-body">
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th style="width: 40px;"></th>
+                                <th>远程路径</th>
+                                <th>GitLab 路径</th>
+                                <th>匹配模式</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for config in server.config_maps %}
+                            <tr>
+                                <td>
+                                    <input type="checkbox" name="config_ids" value="{{ config.id }}" class="form-check-input config-checkbox" form="batchForm">
+                                </td>
+                                <td>{{ config.remote_path }}</td>
+                                <td>{{ config.gitlab_path }}</td>
+                                <td>{{ config.file_pattern }}</td>
+                                <td>
+                                    <a href="{{ url_for('main.compare', config_id=config.id) }}" class="btn btn-primary btn-sm">比对</a>
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="5" class="text-muted">暂无配置映射。</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+
+                    <!-- Add Config Map Form -->
+                    <form action="{{ url_for('main.add_config') }}" method="POST" class="row g-3 align-items-center mt-2 border-top pt-2">
+                        <input type="hidden" name="server_id" value="{{ server.id }}">
+                        <div class="col-auto">
+                            <input type="text" name="remote_path" class="form-control form-control-sm" placeholder="远程路径 (/etc/...)" required>
+                        </div>
+                        <div class="col-auto">
+                            <input type="text" name="gitlab_path" class="form-control form-control-sm" placeholder="GitLab 路径 (configs/...)" required>
+                        </div>
+                        <div class="col-auto">
+                            <input type="text" name="file_pattern" class="form-control form-control-sm" value="*" placeholder="模式">
+                        </div>
+                        <div class="col-auto">
+                            <button type="submit" class="btn btn-sm btn-outline-success">添加路径</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            {% else %}
+            <p>欢迎 {{ current_user.username }} 登录！</p>
+            {% endfor %}
+        </div>
+    </div>
+
+<form action="{{ url_for('main.batch_compare') }}" method="POST" id="batchForm"></form>
+
+<script>
+    function toggleAll() {
+        const checkboxes = document.querySelectorAll('.config-checkbox');
+        const allChecked = Array.from(checkboxes).every(c => c.checked);
+        checkboxes.forEach(c => c.checked = !allChecked);
+    }
+</script>
+{% endblock %}

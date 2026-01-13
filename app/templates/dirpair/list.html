@@ -1,0 +1,135 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2>目录比对管理</h2>
+        <div>
+            <button type="submit" form="batchCompareForm" class="btn btn-info text-white me-2">批量比对</button>
+            <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addDirPairModal">
+                新增比对关系
+            </button>
+        </div>
+    </div>
+
+    <!-- 比对关系列表 -->
+    <div class="card">
+        <div class="card-body">
+            <form id="batchCompareForm" action="{{ url_for('dirpair.batch_compare') }}" method="POST">
+                <table class="table table-hover align-middle">
+                    <thead>
+                        <tr>
+                            <th style="width: 40px;"><input type="checkbox" class="form-check-input" id="selectAll"></th>
+                            <th>ID</th>
+                            <th>名称</th>
+                            <th>源服务器</th>
+                            <th>源目录</th>
+                            <th>目标服务器</th>
+                            <th>目标目录</th>
+                            <th>模式</th>
+                            <th>创建人</th>
+                            <th style="width: 180px;">操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for dp in pairs %}
+                        <tr>
+                            <td><input type="checkbox" name="pair_ids" value="{{ dp.id }}" class="form-check-input pair-checkbox"></td>
+                            <td>{{ dp.id }}</td>
+                            <td>{{ dp.name }}</td>
+                            <td>{{ dp.left_server.name }} ({{ dp.left_server.ip }})</td>
+                            <td>{{ dp.left_path }}</td>
+                            <td>{{ dp.right_server.name }} ({{ dp.right_server.ip }})</td>
+                            <td>{{ dp.right_path }}</td>
+                            <td>{{ dp.file_pattern }}</td>
+                            <td>{{ dp.user.username }}</td>
+                            <td>
+                                <div class="d-flex gap-1">
+                                    <a href="{{ url_for('dirpair.compare_pair', id=dp.id) }}" class="btn btn-sm btn-info text-white" title="比对">比对</a>
+                                    <a href="{{ url_for('dirpair.view_results', id=dp.id) }}" class="btn btn-sm btn-secondary" title="结果">结果</a>
+                                    <button type="submit" form="deleteForm{{ dp.id }}" class="btn btn-sm btn-danger" title="删除">删除</button>
+                                </div>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="10" class="text-center text-muted">暂无目录比对关系</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </form>
+            
+            {% for dp in pairs %}
+            <form id="deleteForm{{ dp.id }}" action="{{ url_for('dirpair.delete_pair', id=dp.id) }}" method="POST" class="d-none" onsubmit="return confirm('确定删除此比对关系？');"></form>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<script>
+document.getElementById('selectAll').addEventListener('change', function() {
+    const checkboxes = document.querySelectorAll('.pair-checkbox');
+    checkboxes.forEach(cb => cb.checked = this.checked);
+});
+</script>
+
+<!-- 新增比对关系模态框 -->
+<div class="modal fade" id="addDirPairModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">新增目录比对关系</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form action="{{ url_for('dirpair.add_pair') }}" method="POST">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">比对关系名称</label>
+                        <input type="text" name="name" class="form-control" placeholder="例如：Nginx 配置比对" required>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">源服务器</label>
+                            <select name="left_server_id" class="form-select" required>
+                                <option value="">请选择源服务器...</option>
+                                {% for server in servers %}
+                                <option value="{{ server.id }}">{{ server.name }} ({{ server.ip }})</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">目标服务器</label>
+                            <select name="right_server_id" class="form-select" required>
+                                <option value="">请选择目标服务器...</option>
+                                {% for server in servers %}
+                                <option value="{{ server.id }}">{{ server.name }} ({{ server.ip }})</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">源目录路径</label>
+                            <input type="text" name="left_path" class="form-control" placeholder="/path/to/source" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">目标目录路径</label>
+                            <input type="text" name="right_path" class="form-control" placeholder="/path/to/target" required>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">文件匹配模式</label>
+                        <input type="text" name="file_pattern" class="form-control" value="*" placeholder="例如 *.conf 或 *" required>
+                        <div class="form-text">仅比对符合该模式的文件。</div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="submit" class="btn btn-primary">保存</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

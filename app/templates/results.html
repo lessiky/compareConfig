@@ -1,0 +1,137 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>比对结果</h2>
+    <a href="{{ url_for('main.list_configs') }}" class="btn btn-secondary">返回首页</a>
+</div>
+
+{% if not grouped_results %}
+<div class="alert alert-info">未找到比对结果。</div>
+{% else %}
+
+<form action="{{ url_for('main.sync_to_gitlab') }}" method="POST">
+    <div class="mb-3 d-flex justify-content-end align-items-center">
+        <div class="form-check me-3">
+            <input class="form-check-input" type="checkbox" id="showDiffOnly" onclick="toggleDiffOnly()">
+            <label class="form-check-label" for="showDiffOnly">只显示不一致</label>
+        </div>
+        <div class="form-check me-3">
+            <input class="form-check-input" type="checkbox" id="selectAllSync" onclick="toggleSyncAll()">
+            <label class="form-check-label" for="selectAllSync">全选 (差异/缺失)</label>
+        </div>
+        <button type="submit" class="btn btn-primary" onclick="return confirm('确定要将选中文件从服务器同步覆盖到 GitLab 吗？');">同步选中文件到 GitLab</button>
+    </div>
+
+{% for config, results in grouped_results %}
+<div class="card mb-4 config-card">
+    <div class="card-header bg-light">
+        <h5 class="mb-0">{{ config.server.name }} ({{ config.server.ip }})</h5>
+    </div>
+    <div class="card-body pb-0">
+        <p class="mb-1"><strong>远程路径:</strong> {{ config.remote_path }}</p>
+        <p class="mb-1"><strong>GitLab 路径:</strong> {{ config.gitlab_path }}</p>
+    </div>
+    <div class="card-body">
+        <div class="accordion" id="diffAccordion{{ config.id }}">
+            {% for result in results %}
+            <div class="accordion-item result-item" data-status="{{ result.status }}">
+                <h2 class="accordion-header" id="heading{{ result.id }}">
+                    <div class="d-flex align-items-center w-100">
+                        {% if result.status == 'DIFF' or result.status == 'MISSING_LOCAL' %}
+                        <div class="px-3">
+                            <input type="checkbox" name="result_ids" value="{{ result.id }}" class="form-check-input sync-checkbox">
+                        </div>
+                        {% else %}
+                         <div class="px-3" style="width: 1rem;"></div>
+                        {% endif %}
+                        <button class="accordion-button {% if result.status == 'MATCH' %}collapsed bg-light{% elif result.status == 'DIFF' %}bg-warning-subtle{% else %}bg-danger-subtle{% endif %}" type="button" data-bs-toggle="collapse" data-bs-target="#collapse{{ result.id }}">
+                            <span class="me-2">
+                                {% if result.status == 'MATCH' %}
+                                <span class="badge bg-success">一致</span>
+                                {% elif result.status == 'DIFF' %}
+                                <span class="badge bg-warning text-dark">差异</span>
+                                {% elif result.status == 'MISSING_REMOTE' %}
+                                <span class="badge bg-danger">服务器缺失</span>
+                                {% elif result.status == 'MISSING_LOCAL' %}
+                                <span class="badge bg-danger">GitLab 缺失</span>
+                                {% endif %}
+                            </span>
+                            {{ result.file_name }}
+                            <small class="text-muted ms-auto">{{ result.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</small>
+                        </button>
+                    </div>
+                </h2>
+                <div id="collapse{{ result.id }}" class="accordion-collapse collapse {% if loop.first and result.status != 'MATCH' and grouped_results|length == 1 %}show{% endif %}" data-bs-parent="#diffAccordion{{ config.id }}">
+                    <div class="accordion-body">
+                        {% if result.diff_content %}
+                        <pre><code>{% for line in result.diff_content.splitlines() %}
+{% if line.startswith('+') %}<span class="diff-added">{{ line }}</span>{% elif line.startswith('-') %}<span class="diff-removed">{{ line }}</span>{% else %}{{ line }}{% endif %}
+{% endfor %}</code></pre>
+                        {% else %}
+                            {% if result.status == 'MATCH' %}
+                            <p class="text-success">文件内容一致。</p>
+                            {% else %}
+                            <p class="text-muted">无具体差异内容。</p>
+                            {% endif %}
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endfor %}
+
+</form>
+
+<script>
+    function toggleSyncAll() {
+        // 只全选当前可见的复选框
+        const selectAll = document.getElementById('selectAllSync');
+        const checkboxes = document.querySelectorAll('.sync-checkbox');
+        
+        checkboxes.forEach(c => {
+            // 找到包含该 checkbox 的最近的 .result-item
+            const item = c.closest('.result-item');
+            // 如果该 item 是可见的，则设置为全选状态
+            if (item && item.style.display !== 'none') {
+                c.checked = selectAll.checked;
+            }
+        });
+    }
+
+    function toggleDiffOnly() {
+        const showDiffOnly = document.getElementById('showDiffOnly').checked;
+        const items = document.querySelectorAll('.result-item');
+        
+        items.forEach(item => {
+            const status = item.getAttribute('data-status');
+            if (showDiffOnly) {
+                if (status === 'MATCH') {
+                    item.style.display = 'none';
+                } else {
+                    item.style.display = '';
+                }
+            } else {
+                item.style.display = '';
+            }
+        });
+
+        // 同时也隐藏没有差异项的整个 Card？可选
+        // 这里简单处理：如果 Card 内所有 item 都隐藏了，是否隐藏 Card？
+        // 增强体验：
+        const cards = document.querySelectorAll('.config-card');
+        cards.forEach(card => {
+            const visibleItems = card.querySelectorAll('.result-item:not([style*="display: none"])');
+            if (showDiffOnly && visibleItems.length === 0) {
+                 card.style.display = 'none';
+            } else {
+                 card.style.display = '';
+            }
+        });
+    }
+</script>
+{% endif %}
+{% endblock %}

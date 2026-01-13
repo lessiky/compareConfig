@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>配置比对工具</title>
+    <link href="{{ url_for('static', filename='css/base.css') }}" rel="stylesheet">
+    <!-- Diff2Html CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/diff2html.min.css') }}">
+    <style>
+        /* 简单的自定义样式 */
+        .d2h-file-header { display: none; }
+        
+        /* 隐藏 Diff2Html 的加减号前缀列 */
+        .d2h-code-line-prefix, .d2h-code-side-line-prefix {
+            display: none !important;
+            width: 0 !important;
+            padding: 0 !important;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-4">
+        <div class="container">
+            <a class="navbar-brand" href="{{ url_for('main.index') }}">配置比对工具</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    {% if current_user.is_authenticated %}
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('main.list_configs') }}">配置管理</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('server.list_servers') }}">服务器管理</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('schedule.list_schedules') }}">定时任务</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('dirpair.list_pairs') }}">目录比对</a>
+                    </li>
+                    {% if current_user.is_admin %}
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('system.list_systems') }}">业务系统管理</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('user.list_users') }}">用户管理</a>
+                    </li>
+                    {% endif %}
+                    {% endif %}
+                </ul>
+                <ul class="navbar-nav">
+                    {% if current_user.is_authenticated %}
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                            {{ current_user.username }}
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-end">
+                            <li><a class="dropdown-item" href="{{ url_for('auth.logout') }}">退出登录</a></li>
+                        </ul>
+                    </li>
+                    {% else %}
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('auth.login') }}">登录</a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }}">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        {% block content %}{% endblock %}
+    </div>
+
+    <script>
+      document.addEventListener('click', function(e) {
+        // Dropdown
+        const toggle = e.target.closest('[data-bs-toggle="dropdown"]');
+        if (toggle) {
+          e.preventDefault();
+          const menu = toggle.parentElement.querySelector('.dropdown-menu');
+          if (menu) menu.classList.toggle('show');
+        } else {
+            // Click outside to close dropdown
+            document.querySelectorAll('.dropdown-menu.show').forEach(menu => {
+                menu.classList.remove('show');
+            });
+        }
+
+        // Collapse
+        const collapseBtn = e.target.closest('[data-bs-toggle="collapse"]');
+        if (collapseBtn) {
+          const targetSel = collapseBtn.getAttribute('data-bs-target');
+          const target = document.querySelector(targetSel);
+          if (target) {
+             // Toggle display
+             if (target.style.display === 'block') {
+                 target.style.display = 'none';
+             } else {
+                 target.style.display = 'block';
+             }
+          }
+        }
+
+        // Modal Open
+        const modalBtn = e.target.closest('[data-bs-toggle="modal"]');
+        if (modalBtn) {
+          e.preventDefault();
+          const targetSel = modalBtn.getAttribute('data-bs-target');
+          const modal = document.querySelector(targetSel);
+          if (modal) modal.classList.add('show');
+        }
+
+        // Modal Close (btn-close or data-bs-dismiss)
+        if (e.target.closest('.btn-close') || e.target.closest('[data-bs-dismiss="modal"]')) {
+          const modal = e.target.closest('.modal');
+          if (modal) modal.classList.remove('show');
+        }
+        
+        // Modal Close (click outside)
+        if (e.target.classList.contains('modal') && e.target.classList.contains('show')) {
+             e.target.classList.remove('show');
+        }
+      });
+    </script>
+    <!-- Diff2Html JS -->
+    <script src="{{ url_for('static', filename='js/diff2html-ui.min.js') }}"></script>
+</body>
+</html>

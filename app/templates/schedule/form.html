@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h4 class="mb-0">{{ '编辑任务' if task else '新建定时任务' }}</h4>
+            </div>
+            <div class="card-body">
+                <form method="POST">
+                    <div class="mb-3">
+                        <label class="form-label">任务名称</label>
+                        <input type="text" name="name" class="form-control" value="{{ task.name if task else '' }}" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">执行时间 (每天)</label>
+                        <input type="time" name="run_time" class="form-control" value="{{ task.run_time if task else '02:00' }}" required>
+                        <div class="form-text">系统将在每天的这个时间自动执行比对任务。</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">选择要比对的目录</label>
+                        <div class="accordion" id="serverAccordion">
+                            {% for server in servers %}
+                            <div class="accordion-item">
+                                <h2 class="accordion-header">
+                                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse{{ server.id }}">
+                                        {{ server.name }} ({{ server.ip }})
+                                        {% if server.business_system %}
+                                        <span class="badge bg-info text-dark ms-2">{{ server.business_system.name }}</span>
+                                        {% endif %}
+                                    </button>
+                                </h2>
+                                <div id="collapse{{ server.id }}" class="accordion-collapse collapse" data-bs-parent="#serverAccordion">
+                                    <div class="accordion-body">
+                                        {% if server.config_maps %}
+                                        <div class="list-group">
+                                            {% for config in server.config_maps %}
+                                            <label class="list-group-item">
+                                                <input class="form-check-input me-1" type="checkbox" name="config_map_ids" value="{{ config.id }}"
+                                                    {% if task and config in task.config_maps %}checked{% endif %}>
+                                                {{ config.remote_path }} <small class="text-muted">-> {{ config.gitlab_path }}</small>
+                                            </label>
+                                            {% endfor %}
+                                        </div>
+                                        {% else %}
+                                        <p class="text-muted mb-0">该服务器暂无配置映射。</p>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                            {% else %}
+                            <p>暂无服务器信息。</p>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-primary">{{ '更新任务' if task else '创建任务' }}</button>
+                        <a href="{{ url_for('schedule.list_schedules') }}" class="btn btn-secondary">返回列表</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

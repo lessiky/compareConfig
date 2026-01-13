@@ -1,0 +1,150 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h2>服务器管理</h2>
+    <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addServerModal">
+        新增服务器
+    </button>
+</div>
+
+<table class="table table-striped">
+    <thead>
+        <tr>
+            <th>名称</th>
+            <th>IP</th>
+            <th>端口</th>
+            <th>用户名</th>
+            <th>OS</th>
+            <th>业务系统</th>
+            <th>操作</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for server in servers %}
+        <tr>
+            <td>{{ server.name }}</td>
+            <td>{{ server.ip }}</td>
+            <td>{{ server.port }}</td>
+            <td>{{ server.username }}</td>
+            <td>{{ server.os_type }}</td>
+            <td>{{ server.business_system.name if server.business_system else '-' }}</td>
+            <td>
+                <button class="btn btn-sm btn-info" data-bs-toggle="modal" data-bs-target="#editServerModal{{ server.id }}">编辑</button>
+                <a href="{{ url_for('server.delete_server', id=server.id) }}" class="btn btn-sm btn-danger" onclick="return confirm('确定删除？')">删除</a>
+            </td>
+        </tr>
+
+        <!-- Edit Modal -->
+        <div class="modal fade" id="editServerModal{{ server.id }}" tabindex="-1">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <form action="{{ url_for('server.edit_server', id=server.id) }}" method="POST">
+                        <div class="modal-header">
+                            <h5 class="modal-title">编辑服务器</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="mb-3">
+                                <label class="form-label">名称</label>
+                                <input type="text" name="name" class="form-control" value="{{ server.name }}" required>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">IP 地址</label>
+                                <input type="text" name="ip" class="form-control" value="{{ server.ip }}" required>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">端口</label>
+                                <input type="number" name="port" class="form-control" value="{{ server.port }}">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">用户名</label>
+                                <input type="text" name="username" class="form-control" value="{{ server.username }}" required>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">密码</label>
+                                <input type="password" name="password" class="form-control" value="{{ server.password }}">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">操作系统</label>
+                                <select name="os_type" class="form-select">
+                                    <option value="Linux" {% if server.os_type == 'Linux' %}selected{% endif %}>Linux</option>
+                                    <option value="Windows" {% if server.os_type == 'Windows' %}selected{% endif %}>Windows</option>
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">所属业务系统</label>
+                                <select name="business_system_id" class="form-select" required>
+                                    {% for sys in systems %}
+                                    <option value="{{ sys.id }}" {% if server.business_system_id == sys.id %}selected{% endif %}>{{ sys.name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                            <button type="submit" class="btn btn-primary">保存</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </tbody>
+</table>
+
+<!-- Add Modal -->
+<div class="modal fade" id="addServerModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form action="{{ url_for('server.add_server') }}" method="POST">
+                <div class="modal-header">
+                    <h5 class="modal-title">新增服务器</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">名称</label>
+                        <input type="text" name="name" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">IP 地址</label>
+                        <input type="text" name="ip" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">端口</label>
+                        <input type="number" name="port" class="form-control" value="22">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">用户名</label>
+                        <input type="text" name="username" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">密码</label>
+                        <input type="password" name="password" class="form-control">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">操作系统</label>
+                        <select name="os_type" class="form-select">
+                            <option value="Linux">Linux</option>
+                            <option value="Windows">Windows</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">所属业务系统</label>
+                        <select name="business_system_id" class="form-select" required>
+                            {% for sys in systems %}
+                            <option value="{{ sys.id }}">{{ sys.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="submit" class="btn btn-primary">保存</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

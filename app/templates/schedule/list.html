@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h2>定时任务管理</h2>
+    <a href="{{ url_for('schedule.add_schedule') }}" class="btn btn-primary">新建任务</a>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <table class="table table-hover">
+            <thead>
+                <tr>
+                    <th>任务名称</th>
+                    <th>执行时间</th>
+                    <th>监控目录数</th>
+                    <th>状态</th>
+                    <th>上次运行</th>
+                    <th>创建人</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for task in tasks %}
+                <tr>
+                    <td>{{ task.name }}</td>
+                    <td><span class="badge bg-info text-dark">{{ task.run_time }}</span></td>
+                    <td>{{ task.config_maps|length }}</td>
+                    <td>
+                        {% if task.is_active %}
+                        <span class="badge bg-success">运行中</span>
+                        {% else %}
+                        <span class="badge bg-secondary">已暂停</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ task.last_run_at.strftime('%Y-%m-%d %H:%M:%S') if task.last_run_at else '从未' }}</td>
+                    <td>{{ task.user.username }}</td>
+                    <td>
+                        <div class="d-flex gap-1">
+                            <form action="{{ url_for('schedule.toggle_schedule', id=task.id) }}" method="POST">
+                                {% if task.is_active %}
+                                <button type="submit" class="btn btn-sm btn-warning">暂停</button>
+                                {% else %}
+                                <button type="submit" class="btn btn-sm btn-success">启用</button>
+                                {% endif %}
+                            </form>
+                            <a href="{{ url_for('schedule.edit_schedule', id=task.id) }}" class="btn btn-sm btn-primary">编辑</a>
+                            <form action="{{ url_for('schedule.delete_schedule', id=task.id) }}" method="POST" onsubmit="return confirm('确定删除此任务？');">
+                                <button type="submit" class="btn btn-sm btn-danger">删除</button>
+                            </form>
+                        </div>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="7" class="text-center text-muted">暂无定时任务</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
