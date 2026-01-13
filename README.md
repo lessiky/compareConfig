@@ -81,7 +81,7 @@
 
 4. 运行应用：
    ```bash
-   python run.py
+   python compare_config.py
    ```
 
 ## 注意事项
@@ -90,4 +90,5 @@
 
 2. 需要手动添加业务系统、服务器和用户，以及配置文件映射。
 
-3. 每次启动时会自动更新hosts.xlsx中服务器的用户名和密码。"# compareConfig" 
+3. 每次启动时会自动更新hosts.xlsx中服务器的用户名和密码。
+
